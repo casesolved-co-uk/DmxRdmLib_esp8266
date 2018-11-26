@@ -1,23 +1,13 @@
-# esp8266DMX v2
-Initial version by Matthew Tong, June 2016.  This library is derived from the HardwareSerial library.
+# DmxRdmLib for ESP8266
+Initial version by [Matthew Tong](https://github.com/mtongnz/espDMX), June 2016.  This library is derived from the HardwareSerial library.
 
-This library has been updated to support new functionality but is compatible with the previous library.
+Merged with the [version with RDM](https://github.com/mtongnz/ESP8266_ArtNetNode_v2/tree/master/libs/espDMX_RDM) (does not have its own git repo) which was used in the [ESP8266_ArtNetNode_v2](https://github.com/mtongnz/ESP8266_ArtNetNode_v2) project.
 
-This library will transmit up to 2 DMX universes from an ESP8266 module.  It utilizes the hardware UARTs and is entirely interupt driven meaning the DMX output has very precise timing.
+This library will transmit up to 2 DMX universes from an ESP8266 module. It utilizes the hardware UARTs and is entirely interrupt driven meaning the DMX output has very precise timing.
 
-The DMX will refresh at a minimum rate of 44Hz.  The library will detect how many channels have been set, outputting less than 512 if possible to increase the refresh rate.  This increases the responsiveness of fixtures.  It will still output a full 512 channels at least once per second.
+The DMX will refresh at a minimum rate of 44Hz.  The library will detect how many channels have been set, outputting less than 512 if possible to increase the refresh rate. This increases the responsiveness of fixtures. It will still output a full 512 channels at least once per second.
 
-View my Instructable for an ESP8266 Artnet to DMX device: http://www.instructables.com/id/ESP8266-Artnet-to-DMX/
-
-If this library is helpful and you're feeling generous, why not shout me a beer:  https://www.paypal.me/mtongnz
-
-##CHANGES:
- - Improved channel count detection to increase the refresh rate.
- - New functions to pause & resume DMX output.
- - New function to reset the channel buffer to zero.
- - New function to return a pointer to the channel buffer.
-
-##USAGE:
+## USAGE:
 
 dmxA uses the same uart as *Serial*, dmxB uses the same uart as *Serial1*.  If you wish to use a serial port, dont call the .begin() function of the relevant dmx port.
 
