@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see http://www.gnu.org/licenses/
 */
 
-#include <espDMX.h>
+#include <DmxRdmLib.h>
 
 // 10 steps with 10 channels in each
 byte dmxChase[][10] = { { 255, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
