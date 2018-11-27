@@ -14,8 +14,8 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see http://www.gnu.org/licenses/
 */
 
-#ifndef DmxRdmLib_h
-#define DmxRdmLib_h
+#ifndef espDMX_h
+#define espDMX_h
 
 #define DMX_MAX_BYTES_PER_INT 3		// How many bytes to send per interrupt
 #define DMX_TX_CONF           0x3c   	// SERIAL_8N2
