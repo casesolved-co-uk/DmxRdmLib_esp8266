@@ -14,7 +14,7 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see http://www.gnu.org/licenses/
 */
 
-#include "espDMX.h"
+#include "DmxRdmLib.h"
 
 espDMX dmxA(0);
 espDMX dmxB(1);
