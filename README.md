@@ -9,7 +9,7 @@ This library will transmit up to 2 DMX universes from an ESP8266 module. It util
 
 The DMX will refresh at a minimum rate of 44Hz.  The library will detect how many channels have been set, outputting less than 512 if possible to increase the refresh rate. This increases the responsiveness of fixtures. It will still output a full 512 channels at least once per second.
 
-## USAGE:
+## USAGE
 
 ```dmxA``` uses the same uart as *Serial*, ```dmxB``` uses the same uart as *Serial1*.  If you wish to use a serial port, dont call the .begin() function of the relevant dmx port.
 
