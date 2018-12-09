@@ -1,4 +1,5 @@
 # DmxRdmLib for ESP8266
+[![Build Status](https://travis-ci.com/JonasArnold/DmxRdmLib_esp8266.svg?branch=master)](https://travis-ci.com/JonasArnold/DmxRdmLib_esp8266)
 Initial version by [Matthew Tong](https://github.com/mtongnz/espDMX), June 2016.  This library is derived from the HardwareSerial library.
 
 Merged with the [version with RDM](https://github.com/mtongnz/ESP8266_ArtNetNode_v2/tree/master/libs/espDMX_RDM) (does not have its own git repo) which was used in the [ESP8266_ArtNetNode_v2](https://github.com/mtongnz/ESP8266_ArtNetNode_v2) project.
