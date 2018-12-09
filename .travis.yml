@@ -21,6 +21,8 @@ install:
  
 script:
  - arduino --verify --board esp8266:esp8266:d1_mini $PWD/examples/dmxChaser/dmxChaser.ino
+ - arduino --verify --board esp8266:esp8266:d1_mini $PWD/examples/dmxInput/dmxInput.ino
+ - arduino --verify --board esp8266:esp8266:d1_mini $PWD/examples/dmxOutput/dmxOutput.ino
  
 notifications:
   email:
