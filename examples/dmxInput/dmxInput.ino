@@ -20,8 +20,7 @@ If not, see http://www.gnu.org/licenses/
 
 void dmxA_InputCallback(uint16_t num)
 {
-	byte* tmp = dataIn;
-	dataIn = dmxA.getChans();
+	byte* dataIn = dmxA.getChans();
 
 	// => do something with the data here
 	analogWrite(LED_PIN, dataIn[0]); // set the LED's brightness to the value of channel 1
