@@ -9,6 +9,13 @@ This library will transmit up to 2 DMX universes from an ESP8266 module. It util
 
 The DMX will refresh at a minimum rate of 44Hz.  The library will detect how many channels have been set, outputting less than 512 if possible to increase the refresh rate. This increases the responsiveness of fixtures. It will still output a full 512 channels at least once per second.
 
+## LIMITATIONS
+
+You cannot use dmxB as an input. Calling ```dmxB.dmxIn(true)``` will cause the library to hang and boot loop.
+I believe this is because of the hardware limitation that the ESP8266 essentially only has a single UART RX channel on UART0. The ESP8266EX datasheet does specify ```U1RXD``` but IO8/RX2 to which it is attached is normally used by the flash interface.
+
+If you do enable dmxA as input, RDM is disabled as there is no RX channel for use.
+
 ## USAGE
 
 ```dmxA``` uses the same uart as *Serial*, ```dmxB``` uses the same uart as *Serial1*.  If you wish to use a serial port, dont call the .begin() function of the relevant dmx port.

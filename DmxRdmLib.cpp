@@ -33,7 +33,6 @@ void dmx_buffer_update(dmx_t* dmx, uint16_t num);
 int dmx_state(dmx_t* dmx);
 void rx_flush();
 void dmx_flush(dmx_t* dmx);
-static void uart_ignore_char(char c);
 
 void dmx_set_buffer(dmx_t* dmx, byte* buf);
 
@@ -104,7 +103,7 @@ void ICACHE_RAM_ATTR dmx_interrupt_handler(void) {
   }
 }
 
-static void uart_ignore_char(char c) { return; }
+//static void uart_ignore_char(char c) { (void) c;  return; }
 
 uint16_t dmx_get_tx_fifo_room(dmx_t* dmx) {
     if(dmx == 0 || dmx->state == DMX_NOT_INIT)
@@ -385,8 +384,8 @@ void espDMX::begin(uint8_t dir, byte* buf) {
 
     _dmx->ownBuffer = 0;
 
-    system_set_os_print(0);
-    ets_install_putc1(&uart_ignore_char);
+//    system_set_os_print(0);
+//    ets_install_putc1(&uart_ignore_char);
     
     // Initialize variables
     _dmx->dmx_nr = _dmx_nr;
@@ -616,7 +615,8 @@ void espDMX::rdmReceived() {
 void espDMX::rdmDiscovery(uint8_t discType) {
   if (!_dmx || !_dmx->rdm_enable)
     return;
-  
+
+  // default
   if (discType == RDM_DISCOVERY_TOD_WIPE) {
     _dmx->tod_size = 0;
       
@@ -659,9 +659,10 @@ void espDMX::rdmDiscoveryResponse(rdm_data* c) {
 
       _dmx->tod_status = RDM_TOD_READY;
 
-      if (_dmx->tod_changed && _dmx->todCallBack != 0) {
+      if (_dmx->tod_changed) {
         _dmx->tod_changed = false;
-        _dmx->todCallBack();
+        if (_dmx->todCallBack)
+          _dmx->todCallBack();
       }
 
       // Issue un-mute to all so no devices hide on the next incremental discovery
@@ -864,7 +865,7 @@ void espDMX::rdmRXTimeout() {
     } 
   }
 
-  if (_dmx->rdmCallBack != NULL)
+  if (_dmx->rdmCallBack)
     _dmx->rdmCallBack(&_dmx->rdm_response);
 }
 
@@ -916,14 +917,14 @@ void espDMX::rdmDisable() {
 
 uint8_t espDMX::todStatus() {
   if (_dmx == 0 || !_dmx->rdm_enable)
-    return false;
+    return 0;
   
   return _dmx->tod_status;
 }
 
 uint16_t espDMX::todCount() {
   if (_dmx == 0 || !_dmx->rdm_enable)
-    return false;
+    return 0;
   
   return _dmx->tod_size;
 }
@@ -945,14 +946,14 @@ uint32_t* espDMX::todDev() {
 
 uint16_t espDMX::todMan(uint16_t n) {
   if (_dmx == 0 || !_dmx->rdm_enable)
-    return NULL;
+    return 0;
 
   return _dmx->todManID[n];
 }
 
 uint32_t espDMX::todDev(uint16_t n) {
   if (_dmx == 0 || !_dmx->rdm_enable)
-    return NULL;
+    return 0;
 
   return _dmx->todDevID[n];
 }
@@ -974,7 +975,7 @@ void espDMX::todSetCallBack(todCallBackFunc callback) {
 
 bool espDMX::rdmEnabled() {
   if (_dmx == 0)
-    return 0;
+    return false;
   return _dmx->rdm_enable;
 }
 
@@ -1109,7 +1110,7 @@ void ICACHE_RAM_ATTR espDMX::inputBreak(void) {
   // Double buffer switch
   byte* tmp = _dmx->data;
   _dmx->data = _dmx->data1;
-  _dmx->data1 = _dmx->data;
+  _dmx->data1 = tmp;
 
   if (_dmx->inputCallBack)
     _dmx->inputCallBack(_dmx->numChans);
@@ -1165,10 +1166,13 @@ void espDMX::handler() {
       //  return;
 
       // DMX Transmit
-      if (millis() >= _dmx->full_uni_time)
+      if (millis() >= _dmx->full_uni_time) {
         _dmx->txSize = 512;
-      else
+        // fix high-watermark with dmx_buffer_update
+        chanUpdate(512);
+      } else {
         _dmx->txSize = _dmx->numChans;
+      }
 
       // If we are sending a full universe then reset the timer
       if (_dmx->txSize == 512)
