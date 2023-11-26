@@ -43,7 +43,6 @@ extern "C" {
 #include "mem.h"
 #include "user_interface.h"
 }
-#include <inttypes.h>
 #include "Stream.h"
 
 
