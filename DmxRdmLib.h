@@ -79,6 +79,7 @@ struct dmx_ {
 	uint8_t dmx_nr;
 	uint8_t txPin;
 	uint8_t dirPin;
+  bool invert;
 	uint8_t ledIntensity;
 	uint8_t state = DMX_NOT_INIT;
 
@@ -126,18 +127,27 @@ public:
 	espDMX(uint8_t dmx_nr);
 	~espDMX();
 
-	void begin(uint8_t dir, byte* buf, uint16_t min_chans);
+	void begin(uint8_t dir, byte* buf, uint16_t min_chans, bool invert);
+  void begin(uint8_t dir, byte* buf, uint16_t min_chans) {
+    begin(dir, buf, min_chans, false);
+  };
+	void begin(uint8_t dir, byte* buf, bool invert) {
+		begin(dir, buf, DMX_MIN_CHANS, invert);
+	};
 	void begin(uint8_t dir, byte* buf) {
-		begin(dir, buf, DMX_MIN_CHANS);
+		begin(dir, buf, DMX_MIN_CHANS, false);
+	};
+	void begin(uint8_t dir, bool invert) {
+		begin(dir, NULL, DMX_MIN_CHANS, invert);
 	};
 	void begin(uint8_t dir) {
-		begin(dir, NULL, DMX_MIN_CHANS);
+		begin(dir, NULL, DMX_MIN_CHANS, false);
 	};
 	void begin(byte* buf) {
-		begin(255, buf, DMX_MIN_CHANS);
+		begin(255, buf, DMX_MIN_CHANS, false);
 	};
 	void begin(void) {
-		begin(255, NULL, DMX_MIN_CHANS);
+		begin(255, NULL, DMX_MIN_CHANS, false);
 	};
 
 	void setBuffer(byte*);

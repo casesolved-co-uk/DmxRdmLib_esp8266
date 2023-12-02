@@ -28,6 +28,7 @@ void dmx_interrupt_disarm(dmx_t* dmx);
 void rdm_interrupt_arm(dmx_t* dmx);
 void rdm_interrupt_disarm();
 void dmx_set_baudrate(dmx_t* dmx, int baud_rate);
+void dmx_set_conf(dmx_t* dmx);
 void dmx_set_chans(dmx_t* dmx, uint8_t* data, uint16_t numChans, uint16_t startChan);
 void dmx_buffer_update(dmx_t* dmx, uint16_t num);
 int dmx_state(dmx_t* dmx);
@@ -132,6 +133,21 @@ void rx_flush() {
     USC0(0) &= ~(tmp);
 }
 
+// TX and RX are both inverted together
+void dmx_set_conf(dmx_t* dmx) {
+  if(dmx == 0 || dmx->state == DMX_NOT_INIT)
+    return;
+
+  USC0(dmx->dmx_nr) = DMX_TX_CONF;
+
+  uint32_t mask = ((1 << UCTXI) | (1 << UCRXI));
+  if (dmx->invert) {
+    USC0(dmx->dmx_nr) |= mask;
+  } else {
+    USC0(dmx->dmx_nr) &= ~mask;
+  }
+}
+
 void dmx_interrupt_enable(dmx_t* dmx) {
     if(dmx == 0 || dmx->state == DMX_NOT_INIT)
         return;
@@ -145,9 +161,9 @@ void dmx_interrupt_enable(dmx_t* dmx) {
 
       // UART at 250k for DMX data
       USD(1) = (ESP8266_CLOCK / DMX_TX_BAUD);
-      USC0(1) = DMX_TX_CONF;
+      dmx_set_conf(dmx);
     }
-    
+
     // Attach out interupt handler function
     ETS_UART_INTR_ATTACH(&dmx_interrupt_handler, NULL);
 
@@ -160,7 +176,7 @@ void dmx_interrupt_enable(dmx_t* dmx) {
 
       // UART at 250k for DMX data
       USD(0) = (ESP8266_CLOCK / DMX_TX_BAUD);
-      USC0(0) = DMX_TX_CONF;
+      dmx_set_conf(dmx);
       USC1(0) = (127 << UCFFT);
 
       // Disable RX Fifo Full & Break Detect & Frame Error Interupts
@@ -174,7 +190,7 @@ void dmx_interrupt_arm(dmx_t* dmx) {
 
   // Clear all interupt bits
   USIC(dmx->dmx_nr) = 0xffff;
-  
+
   // Enable TX Fifo Empty Interupt
   USIE(dmx->dmx_nr) |= (1 << UIFE);
 }
@@ -230,6 +246,17 @@ void dmx_clear_buffer(dmx_t* dmx) {
   dmx->numChans = dmx->minChans;
 }
 
+void dmx_tx_set(dmx_t* dmx, uint8_t level) {
+  if(dmx == 0 || dmx->state == DMX_NOT_INIT)
+    return;
+
+  if (dmx->invert) {
+    digitalWrite(dmx->txPin, !level);
+  } else {
+    digitalWrite(dmx->txPin, level);
+  }
+}
+
 void dmx_set_buffer(dmx_t* dmx, byte* buf) {
   if(dmx == 0 || dmx->state == DMX_NOT_INIT)
     return;
@@ -261,7 +288,7 @@ void dmx_uninit(dmx_t* dmx) {
     dmx_flush(dmx);
 
     pinMode(dmx->txPin, OUTPUT);
-    digitalWrite(dmx->txPin, HIGH);
+    dmx_tx_set(dmx, HIGH);
 
     // Set DMX direction to input so no garbage is sent out
     if (dmx->dirPin != 255)
@@ -360,7 +387,7 @@ espDMX::~espDMX(void) {
   end();
 }
 
-void espDMX::begin(uint8_t dir, byte* buf, uint16_t min_chans) {
+void espDMX::begin(uint8_t dir, byte* buf, uint16_t min_chans, bool invert) {
   if(_dmx == 0) {
     _dmx = (dmx_t*) os_malloc(sizeof(dmx_t));
     
@@ -383,6 +410,7 @@ void espDMX::begin(uint8_t dir, byte* buf, uint16_t min_chans) {
     _dmx->txPin = (_dmx->dmx_nr == 0) ? 1 : 2;
     _dmx->state = DMX_STOP;
     _dmx->txChan = 0;
+    _dmx->invert = invert;
     _dmx->minChans = min_chans; // for buffer clear
     _dmx->numChans = min_chans;
     _dmx->full_uni_time = 0;
@@ -398,10 +426,9 @@ void espDMX::begin(uint8_t dir, byte* buf, uint16_t min_chans) {
     _dmx->isInput = false;
     _dmx->inputCallBack = NULL;
 
-
     // TX output set to idle
     pinMode(_dmx->txPin, OUTPUT);
-    digitalWrite(_dmx->txPin, HIGH);
+    dmx_tx_set(_dmx, HIGH);
 
     // Set direction to output
     if (_dmx->dirPin != 255) {
@@ -1006,10 +1033,10 @@ void espDMX::dmxIn(bool doIn) {
 
     dmx_interrupt_disarm(_dmx);
     rdmPause(true);
-      
+
     // Turn RX pin into UART mode
     pinMode(3, SPECIAL);
-    
+
     // If dirPin is specified then set to in direction
     if (_dmx->dirPin != 255) {
       pinMode(_dmx->dirPin, OUTPUT);
@@ -1017,22 +1044,22 @@ void espDMX::dmxIn(bool doIn) {
     }
 
     // Set txPin to idle
-    digitalWrite(_dmx->txPin, HIGH);
+    dmx_tx_set(_dmx, HIGH);
 
     dmx_input = true;
     rxUser = _dmx->dmx_nr;
     _dmx->state = DMX_RX_IDLE;
-  
+
     noInterrupts();
 
     // UART at 250k for DMX data
     USD(0) = (ESP8266_CLOCK / DMX_TX_BAUD);
-    USC0(0) = DMX_TX_CONF;
+    dmx_set_conf(_dmx);
     USC1(0) = (1 << UCFFT);	// RX Fifo full threshold
-  
+
     rx_flush();                   // flush rx buffer
     USIC(0) = 0x1ff;              // clear all interrupt flags
-  
+
     // Enable RX Fifo Full, Break Detect & Frame Error Interupts
     USIE(0) |= (1 << UIFF) | (1 << UIBD) | (1 << UIFR);
 
@@ -1048,7 +1075,7 @@ void espDMX::dmxIn(bool doIn) {
 
     // Disable RX Fifo Full, Break Detect & Frame Error Interupts
     USIE(0) &= ~((1 << UIFF) | (1 << UIBD) | (1 << UIFR));
-    
+
     if (_dmx->dirPin != 255) {
       pinMode(_dmx->dirPin, OUTPUT);
       digitalWrite(_dmx->dirPin, HIGH);
@@ -1058,7 +1085,7 @@ void espDMX::dmxIn(bool doIn) {
     memset(_dmx->data, 0, 512);
     memset(_dmx->data1, 0, 512);
     _dmx->numChans = 0;
-    
+
     _dmx->isInput = false;
     dmx_input = false;
     rdmPause(false);
@@ -1186,11 +1213,11 @@ void espDMX::handler() {
     
     // BREAK of ~120us
     pinMode(_dmx->txPin, OUTPUT);
-    digitalWrite(_dmx->txPin, LOW);
+    dmx_tx_set(_dmx, LOW);
     delayMicroseconds(118);
     
     // MAB of ~12us
-    digitalWrite(_dmx->txPin, HIGH);
+    dmx_tx_set(_dmx, HIGH);
     delayMicroseconds(7);
     
     // Change pin to UART mode
