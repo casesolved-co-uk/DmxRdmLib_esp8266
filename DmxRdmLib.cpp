@@ -51,12 +51,12 @@ void ICACHE_RAM_ATTR dmx_interrupt_handler(void) {
   // stop other interrupts for TX
   noInterrupts();
   
-  if(U0IS & (1 << UIFE)) {    // TX0 Fifo Empty
+  if(dmxA._dmx && U0IS & (1 << UIFE)) {    // TX0 Fifo Empty
     U0IC = (1 << UIFE);       // clear status flag
     dmxA._transmit();
   }
 
-  if(U1IS & (1 << UIFE)) {    // TX1 Fifo Empty
+  if(dmxB._dmx && U1IS & (1 << UIFE)) {    // TX1 Fifo Empty
     U1IC = (1 << UIFE);       // clear status flag
     dmxB._transmit();
   }
@@ -335,10 +335,16 @@ void dmx_set_chans(dmx_t* dmx, uint8_t* data, uint16_t num, uint16_t start) {
 }
 
 void dmx_buffer_update(dmx_t* dmx, uint16_t num) {
-  if(dmx == 0 || dmx->state == DMX_NOT_INIT || num <= dmx->numChans)
+  if(dmx == 0 || dmx->state == DMX_NOT_INIT)
     return;
 
   dmx->started = true;
+
+  // We don't need to recalc the buffer high watermark
+  if(num <= dmx->numChans) {
+    dmx->newDMX = true;
+    return;
+  }
 
   if (num > 512)
     num = 512;
@@ -1161,16 +1167,13 @@ void espDMX::handler() {
     // If not RDM then do DMX_START
     if (_dmx->state == DMX_STOP && _dmx->started) {
 
-      // If no new DMX and we're not needing to send a full universe then exit
-      //if (millis() < _dmx->full_uni_time && !_dmx->newDMX)
-      //  return;
-
       // DMX Transmit
       if (millis() >= _dmx->full_uni_time) {
         _dmx->txSize = 512;
-        // fix high-watermark with dmx_buffer_update
-        chanUpdate(512);
       } else {
+        // stop sending dmx fulltime if no new data
+        if (!_dmx->newDMX)
+          return;
         _dmx->txSize = _dmx->numChans;
       }
 
@@ -1188,7 +1191,7 @@ void espDMX::handler() {
       return;
 
     // Wait for empty FIFO
-    while (((USS(_dmx->dmx_nr) >> USTXC) & 0xff) != 0)
+    while (((USS(_dmx->dmx_nr) >> USTXC) & 0xff) > 0)
       yield();
 
     // Allow last channel to be fully sent
