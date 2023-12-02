@@ -22,8 +22,7 @@ If not, see http://www.gnu.org/licenses/
 #define DMX_TX_BAUD           250000
 #define DMX_FULL_UNI_TIMING   800   	// How often to output full 512 channel universe (in milliseconds)
 #define DMX_NO_LED            200
-#define DMX_MIN_CHANS         30     	// Minimum channels output = this + DMX_ADD_CHANS
-#define DMX_ADD_CHANS         30     	// Add extra buffer to the number of channels output
+#define DMX_MIN_CHANS         30     	// Default minimum channels output
 #define UART_TX_FIFO_SIZE     0x80
 
 #define RDM_DISCOVERY_INC_TIME    700       // How often to run incremental discovery
@@ -83,6 +82,7 @@ struct dmx_ {
 	uint8_t ledIntensity;
 	uint8_t state = DMX_NOT_INIT;
 
+  uint16_t minChans;
 	uint16_t numChans;
 	uint16_t txChan;
 	uint16_t txSize;
@@ -126,15 +126,18 @@ public:
 	espDMX(uint8_t dmx_nr);
 	~espDMX();
 
-	void begin(uint8_t dir, byte* buf);
+	void begin(uint8_t dir, byte* buf, uint16_t min_chans);
+	void begin(uint8_t dir, byte* buf) {
+		begin(dir, buf, DMX_MIN_CHANS);
+	};
 	void begin(uint8_t dir) {
-		begin(dir, NULL);
+		begin(dir, NULL, DMX_MIN_CHANS);
 	};
 	void begin(byte* buf) {
-		begin(255, buf);
+		begin(255, buf, DMX_MIN_CHANS);
 	};
 	void begin(void) {
-		begin(255, NULL);
+		begin(255, NULL, DMX_MIN_CHANS);
 	};
 
 	void setBuffer(byte*);

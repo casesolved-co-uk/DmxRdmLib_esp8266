@@ -227,7 +227,7 @@ void dmx_clear_buffer(dmx_t* dmx) {
   for (int i = 0; i < 512; i++)
     dmx->data[i] = 0;
   
-  dmx->numChans = DMX_MIN_CHANS;
+  dmx->numChans = dmx->minChans;
 }
 
 void dmx_set_buffer(dmx_t* dmx, byte* buf) {
@@ -301,37 +301,30 @@ void dmx_set_state(dmx_t* dmx, int state) {
   dmx->state = state;
 }
 
+// start is indexed from 1
 void dmx_set_chans(dmx_t* dmx, uint8_t* data, uint16_t num, uint16_t start) {
   if(dmx == 0 || dmx->state == DMX_NOT_INIT)
     return;
 
   dmx->started = true;
+  dmx->newDMX = true;
 
-  uint16_t newNum = start + num - 1;
+  uint16_t newNum = start - 1 + num;
   if (newNum > 512)
     newNum = 512;
 
-  // Is there any new channel data
-  if (memcmp(data, &(dmx->data[start-1]), num) != 0) {
-    // Find the highest channel with new data
-    for (; newNum >= dmx->numChans; newNum--, num--) {
-      if (dmx->data[newNum-1] != data[num-1])
-        break;
-    }
-    newNum += DMX_ADD_CHANS;
-
-    // If we receive tiny data input, just output minimum channels
-    if (newNum < DMX_MIN_CHANS)
-      newNum = DMX_MIN_CHANS;
-      
-    // Put data into our buffer
-    memcpy(&(dmx->data[start-1]), data, num);
-
-    if (newNum > dmx->numChans)
-      dmx->numChans = (newNum > 512) ? 512 : newNum;
-    dmx->newDMX = true;
-    //dmx_transmit(dmx);
+  // Find the highest channel with new data
+  for (; num > 0; newNum--, num--) {
+    if (dmx->data[newNum-1] != data[num-1])
+      break;
   }
+
+  // Put data into our buffer
+  memcpy(&(dmx->data[start-1]), data, num);
+
+  // Recalc high watermark
+  if (newNum > dmx->numChans)
+    dmx->numChans = newNum;
 }
 
 void dmx_buffer_update(dmx_t* dmx, uint16_t num) {
@@ -339,33 +332,25 @@ void dmx_buffer_update(dmx_t* dmx, uint16_t num) {
     return;
 
   dmx->started = true;
+  dmx->newDMX = true;
 
   // We don't need to recalc the buffer high watermark
-  if(num <= dmx->numChans) {
-    dmx->newDMX = true;
+  if(num <= dmx->numChans)
     return;
-  }
 
   if (num > 512)
     num = 512;
 
-  // Find the highest channel with data
-  for (; num >= dmx->numChans; num--) {
+  // Find the highest channel with non-zero data
+  for (; num > dmx->numChans; num--) {
     if (dmx->data[num-1] != 0)
       break;
   }
-  num += DMX_ADD_CHANS;
 
-  // If we receive tiny data input, just output minimum channels
-  if (num < DMX_MIN_CHANS)
-    num = DMX_MIN_CHANS;
-      
   if (num > dmx->numChans)
-    dmx->numChans = (num > 512) ? 512 : num;
-
-  dmx->newDMX = true;
-  //dmx_transmit(dmx);
+    dmx->numChans = num;
 }
+
 
 espDMX::espDMX(uint8_t dmx_nr) :
   _dmx_nr(dmx_nr), _dmx(0) {
@@ -375,7 +360,7 @@ espDMX::~espDMX(void) {
   end();
 }
 
-void espDMX::begin(uint8_t dir, byte* buf) {
+void espDMX::begin(uint8_t dir, byte* buf, uint16_t min_chans) {
   if(_dmx == 0) {
     _dmx = (dmx_t*) os_malloc(sizeof(dmx_t));
     
@@ -398,6 +383,8 @@ void espDMX::begin(uint8_t dir, byte* buf) {
     _dmx->txPin = (_dmx->dmx_nr == 0) ? 1 : 2;
     _dmx->state = DMX_STOP;
     _dmx->txChan = 0;
+    _dmx->minChans = min_chans; // for buffer clear
+    _dmx->numChans = min_chans;
     _dmx->full_uni_time = 0;
     _dmx->last_dmx_time = 0;
     _dmx->led_timer = 0;
