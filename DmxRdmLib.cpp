@@ -330,15 +330,21 @@ void dmx_set_state(dmx_t* dmx, int state) {
 
 // start is indexed from 1
 void dmx_set_chans(dmx_t* dmx, uint8_t* data, uint16_t num, uint16_t start) {
-  if(dmx == 0 || dmx->state == DMX_NOT_INIT)
+  if(dmx == NULL || dmx->state == DMX_NOT_INIT)
     return;
 
   dmx->started = true;
   dmx->newDMX = true;
 
+  if (data == NULL || start == 0 || start > 512 || num == 0)
+    return;
+
   uint16_t newNum = start - 1 + num;
-  if (newNum > 512)
-    newNum = 512;
+  if (newNum > 512) {
+    int16_t difference = newNum - 512;
+    newNum -= difference;
+    num -= difference;
+  }
 
   // Find the highest channel with new data
   for (; num > 0; newNum--, num--) {
@@ -355,7 +361,7 @@ void dmx_set_chans(dmx_t* dmx, uint8_t* data, uint16_t num, uint16_t start) {
 }
 
 void dmx_buffer_update(dmx_t* dmx, uint16_t num) {
-  if(dmx == 0 || dmx->state == DMX_NOT_INIT)
+  if(dmx == NULL || dmx->state == DMX_NOT_INIT)
     return;
 
   dmx->started = true;
