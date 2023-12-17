@@ -12,6 +12,11 @@ warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Ge
 
 You should have received a copy of the GNU General Public License along with this program.
 If not, see http://www.gnu.org/licenses/
+
+
+NOTE: You may want to use below to ensure no OS serial printing:
+system_set_os_print(0);
+ets_install_putc1(&uart_ignore_char);
 */
 
 #ifndef espDMX_h
@@ -94,8 +99,8 @@ struct dmx_ {
 	bool newDMX = false;
 	bool started = false;
 
-	byte* data;
-	byte* data1;
+	byte* data;     // new tx data in; may be allocated internally or passed in, see dmx_set_buffer
+	byte* data1;    // internal tx/rx buffer
 	bool ownBuffer = 0;
 
 	bool isInput = false;
